@@ -60,50 +60,27 @@ import Prelude hiding (product)
 -- >>> import Data.Char(ord)
 -- >>> import Lets.Data
 
-setS ::
-  Store s a
-  -> s
-  -> a
-setS (Store s _) =
-  s
+setS :: Store s a -> s -> a
+setS (Store s _) = s
 
-getS ::
-  Store s a
-  -> s
-getS (Store _ g) =
-  g
+getS :: Store s a -> s
+getS (Store _ g) = g
 
-mapS ::
-  (a -> b)
-  -> Store s a
-  -> Store s b
-mapS =
-  error "todo: mapS"
+mapS :: (a -> b) -> Store s a -> Store s b
+mapS f x = Store (f . setS x) (getS x)
 
-duplicateS ::
-  Store s a
-  -> Store s (Store s a)
-duplicateS =
-  error "todo: duplicateS"
+duplicateS :: Store s a -> Store s (Store s a)
+duplicateS x = Store (const x) (getS x)
 
-extendS ::
-  (Store s a -> b)
-  -> Store s a
-  -> Store s b
-extendS =
-  error "todo: extendS"
+extendS :: (Store s a -> b) -> Store s a -> Store s b
+extendS f x = Store (const (f x)) (getS x)
 
-extractS ::
-  Store s a
-  -> a
-extractS =
-  error "todo: extractS"
+extractS :: Store s a -> a
+extractS x = setS x (getS x)
 
 ----
 
-data Lens a b =
-  Lens
-    (a -> Store b a)
+data Lens a b = Lens (a -> Store b a)
 
 -- |
 --
@@ -116,12 +93,8 @@ data Lens a b =
 -- prop> let types = (x :: Int, y :: String) in get fstL (x, y) == x
 --
 -- prop> let types = (x :: Int, y :: String) in get sndL (x, y) == y
-get ::
-  Lens a b
-  -> a
-  -> b
-get (Lens r) =
-  getS . r
+get :: Lens a b -> a -> b
+get (Lens r) = getS . r
 
 -- |
 --
@@ -136,7 +109,7 @@ get (Lens r) =
 -- prop> let types = (x :: Int, y :: String) in set sndL (x, y) z == (x, z)
 set ::
   Lens a b
-  -> a 
+  -> a
   -> b
   -> a
 set (Lens r) =
@@ -150,7 +123,7 @@ getsetLaw ::
   -> Bool
 getsetLaw l =
   \a -> set l a (get l a) == a
-  
+
 -- | The set/get law of lenses. This function should always return @True@.
 setgetLaw ::
   Eq b =>
@@ -243,7 +216,7 @@ fmodify ::
   -> f a
 fmodify =
   error "todo: fmodify"
-  
+
 -- |
 --
 -- >>> fstL |= Just 3 $ (7, "abc")
@@ -379,7 +352,7 @@ identity ::
   Lens a a
 identity =
   error "todo: identity"
-    
+
 -- |
 --
 -- >>> get (product fstL sndL) (("abc", 3), (4, "def"))
@@ -550,7 +523,7 @@ setCityAndLocality ::
   (Person, Address) -> (String, Locality) -> (Person, Address)
 setCityAndLocality =
   error "todo: setCityAndLocality"
-  
+
 -- |
 --
 -- >>> getSuburbOrCity (Left maryAddress)
