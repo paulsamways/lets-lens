@@ -48,7 +48,7 @@ import Control.Applicative(Applicative((<*>)))
 import Data.Char(toUpper)
 import Data.Functor((<$>))
 import Data.Map(Map)
-import qualified Data.Map as Map(insert, delete, lookup)
+import qualified Data.Map as Map(insert, delete, lookup, alter)
 import Data.Set(Set)
 import qualified Data.Set as Set(insert, delete, member)
 import Lets.Data(Store(Store), Person(Person), Locality(Locality), Address(Address), bool)
@@ -158,22 +158,12 @@ setsetLaw l a b1 b2 =
 -- prop> let types = (x :: Int, y :: String) in modify fstL id (x, y) == (x, y)
 --
 -- prop> let types = (x :: Int, y :: String) in modify sndL id (x, y) == (x, y)
-modify ::
-  Lens a b
-  -> (b -> b)
-  -> a
-  -> a
-modify =
-  error "todo: modify"
+modify :: Lens a b -> (b -> b) -> a -> a
+modify l f a = set l a $ f $ get l a
 
 -- | An alias for @modify@.
-(%~) ::
-  Lens a b
-  -> (b -> b)
-  -> a
-  -> a
-(%~) =
-  modify
+(%~) :: Lens a b -> (b -> b) -> a -> a
+(%~) = modify
 
 infixr 4 %~
 
@@ -188,13 +178,8 @@ infixr 4 %~
 -- prop> let types = (x :: Int, y :: String) in set fstL (x, y) z == (fstL .~ z $ (x, y))
 --
 -- prop> let types = (x :: Int, y :: String) in set sndL (x, y) z == (sndL .~ z $ (x, y))
-(.~) ::
-  Lens a b
-  -> b
-  -> a
-  -> a
-(.~) =
-  error "todo: (.~)"
+(.~) :: Lens a b -> b -> a -> a
+(.~)  l = modify l . const
 
 infixl 5 .~
 
@@ -245,10 +230,8 @@ infixl 5 |=
 -- prop> let types = (x :: Int, y :: String) in setgetLaw fstL (x, y) z
 --
 -- prop> let types = (x :: Int, y :: String) in setsetLaw fstL (x, y) z
-fstL ::
-  Lens (x, y) x
-fstL =
-  error "todo: fstL"
+fstL :: Lens (x, y) x
+fstL = Lens (\(x, y) -> Store (\x' -> (x', y)) x)
 
 -- |
 --
@@ -260,10 +243,8 @@ fstL =
 -- prop> let types = (x :: Int, y :: String) in setgetLaw sndL (x, y) z
 --
 -- prop> let types = (x :: Int, y :: String) in setsetLaw sndL (x, y) z
-sndL ::
-  Lens (x, y) y
-sndL =
-  error "todo: sndL"
+sndL :: Lens (x, y) y
+sndL = Lens (\(x,y) -> Store (\y' -> (x, y')) y)
 
 -- |
 --
@@ -284,12 +265,8 @@ sndL =
 --
 -- >>> set (mapL 33) (Map.fromList (map (\c -> (ord c - 96, c)) ['a'..'d'])) Nothing
 -- fromList [(1,'a'),(2,'b'),(3,'c'),(4,'d')]
-mapL ::
-  Ord k =>
-  k
-  -> Lens (Map k v) (Maybe v)
-mapL =
-  error "todo: mapL"
+mapL :: Ord k => k -> Lens (Map k v) (Maybe v)
+mapL k = Lens (\m -> Store (\v -> Map.alter (const v) k m) (Map.lookup k m))
 
 -- |
 --
@@ -310,12 +287,8 @@ mapL =
 --
 -- >>> set (setL 33) (Set.fromList [1..5]) False
 -- fromList [1,2,3,4,5]
-setL ::
-  Ord k =>
-  k
-  -> Lens (Set k) Bool
-setL =
-  error "todo: setL"
+setL :: Ord k => k -> Lens (Set k) Bool
+setL k = Lens (\s -> Store (bool (Set.delete k s) (Set.insert k s)) (Set.member k s))
 
 -- |
 --
@@ -324,12 +297,8 @@ setL =
 --
 -- >>> set (compose fstL sndL) ("abc", (7, "def")) 8
 -- ("abc",(8,"def"))
-compose ::
-  Lens b c
-  -> Lens a b
-  -> Lens a c
-compose =
-  error "todo: compose"
+compose :: Lens b c -> Lens a b -> Lens a c
+compose = error "todo: compose"
 
 -- | An alias for @compose@.
 (|.) ::
