@@ -107,11 +107,7 @@ get (Lens r) = getS . r
 -- prop> let types = (x :: Int, y :: String) in set fstL (x, y) z == (z, y)
 --
 -- prop> let types = (x :: Int, y :: String) in set sndL (x, y) z == (x, z)
-set ::
-  Lens a b
-  -> a
-  -> b
-  -> a
+set :: Lens a b -> a -> b -> a
 set (Lens r) =
   setS . r
 
@@ -290,6 +286,8 @@ mapL k = Lens (\m -> Store (\v -> Map.alter (const v) k m) (Map.lookup k m))
 setL :: Ord k => k -> Lens (Set k) Bool
 setL k = Lens (\s -> Store (bool (Set.delete k s) (Set.insert k s)) (Set.member k s))
 
+-- modify :: Lens a b -> (b -> b) -> a -> a
+
 -- |
 --
 -- >>> get (compose fstL sndL) ("abc", (7, "def"))
@@ -298,15 +296,11 @@ setL k = Lens (\s -> Store (bool (Set.delete k s) (Set.insert k s)) (Set.member 
 -- >>> set (compose fstL sndL) ("abc", (7, "def")) 8
 -- ("abc",(8,"def"))
 compose :: Lens b c -> Lens a b -> Lens a c
-compose = error "todo: compose"
+compose bc ab = Lens (\a -> Store (\c -> let b = get ab a in set ab a $ set bc b c) (get bc $ get ab a ))
 
 -- | An alias for @compose@.
-(|.) ::
-  Lens b c
-  -> Lens a b
-  -> Lens a c
-(|.) =
-  compose
+(|.) :: Lens b c -> Lens a b -> Lens a c
+(|.) = compose
 
 infixr 9 |.
 
@@ -317,10 +311,8 @@ infixr 9 |.
 --
 -- >>> set identity 3 4
 -- 4
-identity ::
-  Lens a a
-identity =
-  error "todo: identity"
+identity :: Lens a a
+identity = Lens $ Store id
 
 -- |
 --
@@ -329,20 +321,12 @@ identity =
 --
 -- >>> set (product fstL sndL) (("abc", 3), (4, "def")) ("ghi", "jkl")
 -- (("ghi",3),(4,"jkl"))
-product ::
-  Lens a b
-  -> Lens c d
-  -> Lens (a, c) (b, d)
-product =
-  error "todo: product"
+product :: Lens a b -> Lens c d -> Lens (a, c) (b, d)
+product ab cd = Lens (\(a, c) -> Store (\(b, d) -> (set ab a b, set cd c d)) (get ab a, get cd c))
 
 -- | An alias for @product@.
-(***) ::
-  Lens a b
-  -> Lens c d
-  -> Lens (a, c) (b, d)
-(***) =
-  product
+(***) :: Lens a b -> Lens c d -> Lens (a, c) (b, d)
+(***) = product
 
 infixr 3 ***
 
@@ -359,20 +343,13 @@ infixr 3 ***
 --
 -- >>> set (choice fstL sndL) (Right ("abc", 7)) 8
 -- Right ("abc",8)
-choice ::
-  Lens a x
-  -> Lens b x
-  -> Lens (Either a b) x
-choice =
-  error "todo: choice"
+choice :: Lens a x -> Lens b x -> Lens (Either a b) x
+choice ax bx = Lens $ either (\a -> Store (Left . set ax a) (get ax a))
+                             (\b -> Store (Right . set bx b) (get bx b))
 
 -- | An alias for @choice@.
-(|||) ::
-  Lens a x
-  -> Lens b x
-  -> Lens (Either a b) x
-(|||) =
-  choice
+(|||) :: Lens a x -> Lens b x -> Lens (Either a b) x
+(|||) = choice
 
 infixr 2 |||
 
@@ -448,11 +425,8 @@ addressL =
 --
 -- >>> getSuburb mary
 -- "Maryland"
-getSuburb ::
-  Person
-  -> String
-getSuburb =
-  error "todo: getSuburb"
+getSuburb :: Person -> String
+getSuburb = get $ suburbL |. addressL
 
 -- |
 --
@@ -461,12 +435,8 @@ getSuburb =
 --
 -- >>> setStreet mary "Some Other St"
 -- Person 28 "Mary" (Address "Some Other St" "Maryland" (Locality "Mary Mary" "Western Mary" "Maristan"))
-setStreet ::
-  Person
-  -> String
-  -> Person
-setStreet =
-  error "todo: setStreet"
+setStreet :: Person -> String -> Person
+setStreet = set $ streetL |. addressL
 
 -- |
 --
@@ -475,11 +445,8 @@ setStreet =
 --
 -- >>> getAgeAndCountry (mary, fredLocality)
 -- (28,"Fredalia")
-getAgeAndCountry ::
-  (Person, Locality)
-  -> (Int, String)
-getAgeAndCountry =
-  error "todo: getAgeAndCountry"
+getAgeAndCountry :: (Person, Locality) -> (Int, String)
+getAgeAndCountry = get (ageL *** countryL)
 
 -- |
 --
@@ -488,10 +455,8 @@ getAgeAndCountry =
 --
 -- >>> setCityAndLocality (mary, fredAddress) ("Some Other City", maryLocality)
 -- (Person 28 "Mary" (Address "83 Mary Ln" "Maryland" (Locality "Some Other City" "Western Mary" "Maristan")),Address "15 Fred St" "Fredville" (Locality "Mary Mary" "Western Mary" "Maristan"))
-setCityAndLocality ::
-  (Person, Address) -> (String, Locality) -> (Person, Address)
-setCityAndLocality =
-  error "todo: setCityAndLocality"
+setCityAndLocality :: (Person, Address) -> (String, Locality) -> (Person, Address)
+setCityAndLocality = set ((cityL |. localityL |. addressL) *** localityL)
 
 -- |
 --
@@ -500,11 +465,8 @@ setCityAndLocality =
 --
 -- >>> getSuburbOrCity (Right fredLocality)
 -- "Fredmania"
-getSuburbOrCity ::
-  Either Address Locality
-  -> String
-getSuburbOrCity =
-  error "todo: getSuburbOrCity"
+getSuburbOrCity :: Either Address Locality -> String
+getSuburbOrCity = get (suburbL ||| cityL)
 
 -- |
 --
@@ -513,12 +475,8 @@ getSuburbOrCity =
 --
 -- >>> setStreetOrState (Left fred) "Some Other St"
 -- Left (Person 24 "Fred" (Address "Some Other St" "Fredville" (Locality "Fredmania" "New South Fred" "Fredalia")))
-setStreetOrState ::
-  Either Person Locality
-  -> String
-  -> Either Person Locality
-setStreetOrState =
-  error "todo: setStreetOrState"
+setStreetOrState :: Either Person Locality -> String -> Either Person Locality
+setStreetOrState = set (streetL |. addressL ||| stateL)
 
 -- |
 --
@@ -527,8 +485,5 @@ setStreetOrState =
 --
 -- >>> modifyCityUppercase mary
 -- Person 28 "Mary" (Address "83 Mary Ln" "Maryland" (Locality "MARY MARY" "Western Mary" "Maristan"))
-modifyCityUppercase ::
-  Person
-  -> Person
-modifyCityUppercase =
-  error "todo: modifyCityUppercase"
+modifyCityUppercase :: Person -> Person
+modifyCityUppercase = modify (cityL |. localityL |. addressL) (fmap toUpper)
