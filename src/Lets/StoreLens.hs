@@ -189,14 +189,8 @@ infixl 5 .~
 --
 -- >>> fmodify fstL (\n -> bool Nothing (Just (n * 2)) (even n)) (11, "abc")
 -- Nothing
-fmodify ::
-  Functor f =>
-  Lens a b
-  -> (b -> f b)
-  -> a
-  -> f a
-fmodify =
-  error "todo: fmodify"
+fmodify :: Functor f => Lens a b -> (b -> f b) -> a -> f a
+fmodify l fb a = set l a <$> fb (get l a)
 
 -- |
 --
@@ -205,14 +199,8 @@ fmodify =
 --
 -- >>> (fstL |= (+1) $ (3, "abc")) 17
 -- (18,"abc")
-(|=) ::
-  Functor f =>
-  Lens a b
-  -> f b
-  -> a
-  -> f a
-(|=) =
-  error "todo: (|=)"
+(|=) :: Functor f => Lens a b -> f b -> a -> f a
+(|=) l = fmodify l . const
 
 infixl 5 |=
 

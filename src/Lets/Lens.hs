@@ -97,7 +97,7 @@ import Prelude hiding (product)
 --
 -- class (Foldable t, Functor t) => Traversable t where
 --   traverse ::
---     Applicative f => 
+--     Applicative f =>
 --     (a -> f b)
 --     -> t a
 --     -> f (t b)
@@ -105,72 +105,38 @@ import Prelude hiding (product)
 -- | Observe that @fmap@ can be recovered from @traverse@ using @Identity@.
 --
 -- /Reminder:/ fmap :: Functor t => (a -> b) -> t a -> t b
-fmapT ::
-  Traversable t =>
-  (a -> b)
-  -> t a
-  -> t b
-fmapT =
-  error "todo: fmapT"
+fmapT :: Traversable t => (a -> b) -> t a -> t b
+fmapT f t = getIdentity $ traverse (Identity . f) t
 
 -- | Let's refactor out the call to @traverse@ as an argument to @fmapT@.
-over :: 
-  ((a -> Identity b) -> s -> Identity t)
-  -> (a -> b)
-  -> s
-  -> t
-over =
-  error "todo: over"
+over :: ((a -> Identity b) -> s -> Identity t) -> (a -> b) -> s -> t
+over f g = getIdentity . f (Identity . g)
 
 -- | Here is @fmapT@ again, passing @traverse@ to @over@.
-fmapTAgain ::
-  Traversable t =>
-  (a -> b)
-  -> t a
-  -> t b
-fmapTAgain =
-  error "todo: fmapTAgain"
+fmapTAgain :: Traversable t => (a -> b) -> t a -> t b
+fmapTAgain = over traverse
 
 -- | Let's create a type-alias for this type of function.
-type Set s t a b =
-  (a -> Identity b)
-  -> s
-  -> Identity t
+type Set s t a b = (a -> Identity b) -> s -> Identity t
 
 -- | Let's write an inverse to @over@ that does the @Identity@ wrapping &
 -- unwrapping.
-sets ::
-  ((a -> b) -> s -> t)
-  -> Set s t a b  
-sets =
-  error "todo: sets"
+sets :: ((a -> b) -> s -> t) -> Set s t a b
+sets f ab = Identity . f (getIdentity . ab)
 
-mapped ::
-  Functor f =>
-  Set (f a) (f b) a b
-mapped =
-  error "todo: mapped"
+mapped :: Functor f => Set (f a) (f b) a b -- (a -> Identity b) -> f a -> Identity (f b)
+mapped f a = Identity $ (getIdentity . f) <$> a
 
-set ::
-  Set s t a b
-  -> s
-  -> b
-  -> t
-set =
-  error "todo: set"
+set :: Set s t a b -> s -> b -> t
+set f s b = over f (const b) s
 
 ----
 
 -- | Observe that @foldMap@ can be recovered from @traverse@ using @Const@.
 --
 -- /Reminder:/ foldMap :: (Foldable t, Monoid b) => (a -> b) -> t a -> b
-foldMapT ::
-  (Traversable t, Monoid b) =>
-  (a -> b)
-  -> t a
-  -> b
-foldMapT =
-  error "todo: foldMapT"
+foldMapT :: (Traversable t, Monoid b) => (a -> b) -> t a -> b
+foldMapT f t = error "foldMapT"
 
 -- | Let's refactor out the call to @traverse@ as an argument to @foldMapT@.
 foldMapOf ::
@@ -289,7 +255,7 @@ _Left =
   error "todo: _Left"
 
 _Right ::
-  Prism (Either x a) (Either x b) a b 
+  Prism (Either x a) (Either x b) a b
 _Right =
   error "todo: _Right"
 
@@ -395,7 +361,7 @@ fmodify ::
   Lens s t a b
   -> (a -> f b)
   -> s
-  -> f t 
+  -> f t
 fmodify =
   error "todo: fmodify"
 
@@ -689,7 +655,7 @@ setCityAndLocality ::
   (Person, Address) -> (String, Locality) -> (Person, Address)
 setCityAndLocality =
   error "todo: setCityAndLocality"
-  
+
 -- |
 --
 -- >>> getSuburbOrCity (Left maryAddress)
